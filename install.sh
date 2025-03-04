@@ -2,6 +2,22 @@
 # Dotfiles installation script - Works on both macOS and Linux
 # but with configurations optimized for Linux environments
 
+INSTALL_DEPENDENCIES=false
+
+# Parse command opt -y
+while getopts "y" opt; do
+  case $opt in
+    y)
+      INSTALL_DEPENDENCIES=true
+      ;;
+    *)
+      echo "Usage: $0 [-y]"
+      echo "  -y  Install dependencies automatically"
+      exit 1
+      ;;
+  esac
+done
+
 # Set colors for status messages
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -40,6 +56,15 @@ detect_os() {
 OS=$(detect_os)
 print_status "Detected OS: $OS"
 
+# Check if this script is being run in a Docker container
+is_in_container() {
+  if [ -f /.dockerenv ] || grep -q 'docker\|lxc' /proc/1/cgroup 2>/dev/null; then
+    return 0  # True, we are in a container
+  else
+    return 1  # False, not in a container
+  fi
+}
+
 # Create necessary directories
 mkdir -p ~/.config/git
 mkdir -p ~/.local/bin
@@ -49,11 +74,18 @@ DOTFILES_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 print_status "Installing dotfiles from ${DOTFILES_DIR}"
 
+# Check if we're in a Dev Container
+in_devcontainer=false
+if [ -n "$REMOTE_CONTAINERS" ] || [ -n "$CODESPACES" ] || [ -n "$VSCODE_REMOTE_CONTAINERS_SESSION" ] || is_in_container; then
+  in_devcontainer=true
+  print_status "Detected running in dev container"
+fi
+
 # Create symlinks for dotfiles
 create_symlink() {
   local src="$1"
   local dest="$2"
-  
+
   if [ -e "$dest" ]; then
     if [ -L "$dest" ]; then
       print_warning "Symlink already exists: $dest"
@@ -85,7 +117,7 @@ if [ -d "$DOTFILES_DIR/.scripts" ]; then
     chmod +x "$script"
     print_success "Made executable: $script"
   done
-  
+
   # Create symlinks for utility scripts in ~/.local/bin
   for script in "$DOTFILES_DIR/.scripts"/*; do
     if [ -f "$script" ] && [ -x "$script" ]; then
@@ -143,7 +175,7 @@ yarn-error.log
 # Ansible
 *.retry
 GITIGNORE
-  
+
   create_symlink "$DOTFILES_DIR/.gitignore_global" "$HOME/.config/git/ignore"
   if command -v git >/dev/null 2>&1; then
     git config --global core.excludesfile "$HOME/.config/git/ignore"
@@ -155,7 +187,7 @@ fi
 install_dependencies() {
   if [ "$OS" = "macos" ]; then
     print_status "Installing dependencies for macOS..."
-    
+
     # Check if Homebrew is installed
     if ! command -v brew >/dev/null 2>&1; then
       print_status "Installing Homebrew..."
@@ -163,12 +195,12 @@ install_dependencies() {
     else
       print_status "Homebrew already installed"
     fi
-    
+
     # Install packages with Homebrew
     brew install zsh vim tmux neovim fzf
   elif [ "$OS" = "linux" ]; then
     print_status "Installing dependencies for Linux..."
-    
+
     # Check package manager
     if command -v apt-get >/dev/null 2>&1; then
       print_status "Using apt package manager"
@@ -193,12 +225,22 @@ install_dependencies() {
 
 # Ask user if they want to install dependencies
 install_deps() {
-  read -p "Would you like to install dependencies? (y/n): " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
+  # In a container, we assume dependencies are already installed
+  if [ "$in_devcontainer" = true ]; then
+    print_status "Running in container, assuming dependencies are already installed"
+    return
+  fi
+
+  if [ "$INSTALL_DEPENDENCIES" = true ]; then
+    install_dependencies
+  else
+    read -p "Would you like to install dependencies? (y/n): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
     install_dependencies
   else
     print_status "Skipping dependency installation"
+    fi
   fi
 }
 
@@ -206,7 +248,8 @@ install_deps() {
 install_omz() {
   if [ ! -d "$HOME/.oh-my-zsh" ]; then
     print_status "Installing Oh My Zsh..."
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+    # Use -y to avoid the prompt that requires user input
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc
     print_success "Oh My Zsh installed"
   else
     print_status "Oh My Zsh already installed"
@@ -229,7 +272,7 @@ install_zsh_plugin() {
   local plugin_name="$1"
   local plugin_url="$2"
   local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$plugin_name"
-  
+
   if [ ! -d "$plugin_dir" ]; then
     print_status "Installing $plugin_name..."
     git clone --depth=1 "$plugin_url" "$plugin_dir"
@@ -248,7 +291,7 @@ install_zsh_plugins() {
 # Create documentation files
 create_docs() {
   print_status "Creating documentation files..."
-  
+
   # Create INSTALL.md if it doesn't exist
   if [ ! -f "$DOTFILES_DIR/INSTALL.md" ]; then
     cat > "$DOTFILES_DIR/INSTALL.md" << INSTALLMD
@@ -263,7 +306,7 @@ create_docs() {
 ## Quick Install
 
 \`\`\`bash
-git clone https://github.com/yourusername/dotfiles.git ~/.dotfiles
+git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ./install.sh
 \`\`\`
@@ -272,7 +315,7 @@ cd ~/.dotfiles
 
 1. Clone this repository:
    \`\`\`bash
-   git clone https://github.com/yourusername/dotfiles.git ~/.dotfiles
+   git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
    \`\`\`
 
 2. Run the installation script:
@@ -305,7 +348,7 @@ If you encounter any issues, please check the following:
 INSTALLMD
     print_success "Created INSTALL.md"
   fi
-  
+
   # Create CONFIG.md if it doesn't exist
   if [ ! -f "$DOTFILES_DIR/CONFIG.md" ]; then
     cat > "$DOTFILES_DIR/CONFIG.md" << CONFIGMD
@@ -368,7 +411,7 @@ dothelp     # Show documentation in terminal format
 CONFIGMD
     print_success "Created CONFIG.md"
   fi
-  
+
   # Create CHEATSHEET.md if it doesn't exist
   if [ ! -f "$DOTFILES_DIR/CHEATSHEET.md" ]; then
     cat > "$DOTFILES_DIR/CHEATSHEET.md" << CHEATSHEETMD
@@ -431,23 +474,35 @@ CHEATSHEETMD
   fi
 }
 
+# Create empty zshrc if it doesn't exist to avoid the zsh new user prompt
+ensure_zshrc_exists() {
+  if [ ! -f "$HOME/.zshrc" ]; then
+    print_status "Creating empty .zshrc to avoid new user prompt..."
+    touch "$HOME/.zshrc"
+    print_success "Created empty .zshrc"
+  fi
+}
+
 # Main installation process
 main() {
+  # Ensure zshrc exists first to prevent the new user prompt
+  ensure_zshrc_exists
+
   # Ask about installing dependencies
   install_deps
-  
+
   # Install Oh My Zsh
   install_omz
-  
+
   # Install Powerlevel10k theme
   install_p10k
-  
+
   # Install ZSH plugins
   install_zsh_plugins
-  
+
   # Create documentation files
   create_docs
-  
+
   # Install fzf
   if ! command -v fzf &> /dev/null; then
     print_status "Installing fzf..."
@@ -455,14 +510,18 @@ main() {
       brew install fzf
       $(brew --prefix)/opt/fzf/install --all
     else
-      git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-      ~/.fzf/install --all
+      if [ "$in_devcontainer" = false ]; then
+        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+        ~/.fzf/install --all
+      else
+        print_status "Skipping fzf installation in container (assuming it's already installed)"
+      fi
     fi
     print_success "fzf installed"
   else
     print_status "fzf already installed"
   fi
-  
+
   print_success "Dotfiles installation complete!"
   print_status "Please restart your shell or run 'source ~/.zshrc'"
   print_status "Use 'readme' command to view documentation"
