@@ -1,13 +1,8 @@
-# Enable Powerlevel10k instant prompt
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 # Path to oh-my-zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
-# Set powerlevel10k theme
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# Set theme to none (using Starship instead)
+ZSH_THEME=""
 
 # Enable plugins
 plugins=(
@@ -96,11 +91,13 @@ bindkey '^[[F' end-of-line
 bindkey '^[[3~' delete-char
 bindkey '^H' backward-delete-char
 
-# Source powerlevel10k config if exists
-[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
-
 # Load custom functions if they exist
 [[ -f ~/.zsh_functions ]] && source ~/.zsh_functions
 
 # Load local configs if they exist
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# Initialize Starship prompt if installed
+if command -v starship &> /dev/null; then
+  eval "$(starship init zsh)"
+fi

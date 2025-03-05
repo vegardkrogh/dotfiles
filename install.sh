@@ -68,6 +68,7 @@ is_in_container() {
 # Create necessary directories
 mkdir -p ~/.config/git
 mkdir -p ~/.local/bin
+mkdir -p ~/.config/starship
 
 # Get the dotfiles directory (where this script is located)
 DOTFILES_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -155,6 +156,10 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# Elixir
+_build/
+deps/
 
 # Python
 __pycache__/
@@ -256,6 +261,29 @@ install_omz() {
   fi
 }
 
+# Install Starship prompt
+install_starship() {
+  if ! command -v starship &> /dev/null; then
+    print_status "Installing Starship prompt..."
+    if [ "$OS" = "macos" ]; then
+      brew install starship
+    else
+      curl -sS https://starship.rs/install.sh | sh -s -- -y
+    fi
+    print_success "Starship prompt installed"
+  else
+    print_status "Starship prompt already installed"
+  fi
+
+  # Create Starship config directory if it doesn't exist
+  mkdir -p "$HOME/.config"
+
+  # Create symlink for Starship config
+  if [ -f "$DOTFILES_DIR/.config/starship.toml" ]; then
+    create_symlink "$DOTFILES_DIR/.config/starship.toml" "$HOME/.config/starship.toml"
+  fi
+}
+
 # Install powerlevel10k theme
 install_p10k() {
   if [ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k" ]; then
@@ -290,188 +318,8 @@ install_zsh_plugins() {
 
 # Create documentation files
 create_docs() {
-  print_status "Creating documentation files..."
-
-  # Create INSTALL.md if it doesn't exist
-  if [ ! -f "$DOTFILES_DIR/INSTALL.md" ]; then
-    cat > "$DOTFILES_DIR/INSTALL.md" << INSTALLMD
-# Installation Guide
-
-## Prerequisites
-
-- Git
-- Zsh (recommended)
-- Bash (alternative)
-
-## Quick Install
-
-\`\`\`bash
-git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
-./install.sh
-\`\`\`
-
-## Manual Installation
-
-1. Clone this repository:
-   \`\`\`bash
-   git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
-   \`\`\`
-
-2. Run the installation script:
-   \`\`\`bash
-   cd ~/.dotfiles
-   ./install.sh
-   \`\`\`
-
-3. Restart your shell:
-   \`\`\`bash
-   exec zsh
-   \`\`\`
-
-## What's Included
-
-- Zsh configuration with Oh-My-Zsh
-- Powerlevel10k theme
-- Useful plugins and aliases
-- Tmux configuration
-- Vim/Neovim setup
-- Git configuration
-
-## Troubleshooting
-
-If you encounter any issues, please check the following:
-
-1. Make sure all dependencies are installed
-2. Verify that your shell is set to Zsh
-3. Check for any error messages during installation
-INSTALLMD
-    print_success "Created INSTALL.md"
-  fi
-
-  # Create CONFIG.md if it doesn't exist
-  if [ ! -f "$DOTFILES_DIR/CONFIG.md" ]; then
-    cat > "$DOTFILES_DIR/CONFIG.md" << CONFIGMD
-# Configuration Guide
-
-## Zsh Configuration
-
-The \`.zshrc\` file contains all the Zsh shell settings. Key settings include:
-
-- Powerlevel10k theme configuration
-- Plugin settings
-- Aliases and functions
-- Environment variables
-
-## Custom Configuration
-
-You can add your own custom configurations:
-
-1. For Zsh, create a \`.zshrc.local\` file in your home directory
-2. For Git, edit \`.gitconfig.local\`
-
-## Available Tools
-
-### Readme Tool
-
-The \`readme\` command allows you to view documentation files:
-
-\`\`\`bash
-# View the main README
-readme
-
-# View installation instructions
-readme install
-
-# View configuration guide
-readme config
-
-# View cheatsheets
-readme cheat
-
-# View all defined aliases
-readme alias
-
-# Output in specific format
-readme --format html
-\`\`\`
-
-### Alias Shortcuts
-
-For quick access to documentation, you can use these aliases:
-
-\`\`\`bash
-dotdoc      # Show general documentation
-dotinstall  # Show installation instructions
-dotconfig   # Show configuration guide
-dotcheat    # Show cheatsheet
-dotaliases  # Show all defined aliases
-dothelp     # Show documentation in terminal format
-\`\`\`
-CONFIGMD
-    print_success "Created CONFIG.md"
-  fi
-
-  # Create CHEATSHEET.md if it doesn't exist
-  if [ ! -f "$DOTFILES_DIR/CHEATSHEET.md" ]; then
-    cat > "$DOTFILES_DIR/CHEATSHEET.md" << CHEATSHEETMD
-# Cheatsheet
-
-## Git Aliases
-
-| Alias | Command | Description |
-|-------|---------|-------------|
-| \`gs\` | \`git status\` | Check status |
-| \`gco\` | \`git checkout\` | Checkout branch or files |
-| \`gcm\` | \`git commit -m\` | Commit with message |
-| \`gca\` | \`git commit --amend --no-edit\` | Amend commit without edit |
-| \`gp\` | \`git push\` | Push to remote |
-| \`gpl\` | \`git pull\` | Pull from remote |
-| \`gb\` | \`git branch\` | List branches |
-| \`gl\` | \`git log --oneline\` | View commit history |
-
-## Docker Aliases
-
-| Alias | Command | Description |
-|-------|---------|-------------|
-| \`up\` | \`docker compose up\` | Start containers |
-| \`down\` | \`docker compose down\` | Stop containers |
-| \`ps\` | \`docker compose ps\` | List containers |
-| \`logs\` | \`docker compose logs -f\` | Follow logs |
-
-## Kubernetes Aliases
-
-| Alias | Command | Description |
-|-------|---------|-------------|
-| \`k\` | \`kubectl\` | Kubectl shorthand |
-
-## Vim Cheatsheet
-
-| Key | Action |
-|-----|--------|
-| \`dd\` | Delete line |
-| \`yy\` | Copy line |
-| \`p\` | Paste |
-| \`u\` | Undo |
-| \`Ctrl+r\` | Redo |
-| \`/pattern\` | Search for pattern |
-| \`:w\` | Save |
-| \`:q\` | Quit |
-| \`:wq\` | Save and quit |
-
-## Tmux Cheatsheet
-
-| Key | Action |
-|-----|--------|
-| \`Ctrl+b c\` | Create new window |
-| \`Ctrl+b n\` | Next window |
-| \`Ctrl+b p\` | Previous window |
-| \`Ctrl+b %\` | Split vertically |
-| \`Ctrl+b "\` | Split horizontally |
-| \`Ctrl+b d\` | Detach from session |
-CHEATSHEETMD
-    print_success "Created CHEATSHEET.md"
-  fi
+  print_status "Documentation files already exist, skipping creation"
+  # The MD files are not created anymore as they already exist elsewhere
 }
 
 # Create empty zshrc if it doesn't exist to avoid the zsh new user prompt
@@ -494,8 +342,12 @@ main() {
   # Install Oh My Zsh
   install_omz
 
-  # Install Powerlevel10k theme
-  install_p10k
+  # Install Starship prompt (modern, fast prompt)
+  install_starship
+
+  # Powerlevel10k is no longer the default, but still available if needed
+  # Uncomment to install Powerlevel10k
+  # install_p10k
 
   # Install ZSH plugins
   install_zsh_plugins
