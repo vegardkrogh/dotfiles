@@ -113,3 +113,17 @@ alias tmuxconf="vim ~/.tmux.conf"
 
 # Quick reload of shell configuration
 alias reload="source ~/.bashrc"
+
+# Ephemeral sandbox container - only git changes persist
+alias sandbox="docker run --rm -it \
+  -v \"\$(pwd)/.git:/work/.git\" \
+  -v \"\$(pwd):/source:ro\" \
+  -w /work \
+  alpine:latest sh -c '\
+  apk add --no-cache git bash && \
+  git config --global user.email \"$(git config user.email)\" && \
+  git config --global user.name \"$(git config user.name)\" && \
+  cp -r /source/* /work/ 2>/dev/null || true && \
+  cp -r /source/.[^.]* /work/ 2>/dev/null || true && \
+  echo -e \"\n\033[1;33mEphemeral sandbox created! Only changes committed to git will persist.\033[0m\n\" && \
+  exec bash'"

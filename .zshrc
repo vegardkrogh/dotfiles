@@ -1,3 +1,6 @@
+# Disable compfix to avoid the "_brew_services" error
+ZSH_DISABLE_COMPFIX="true"
+
 # Path to oh-my-zsh installation
 export ZSH="$HOME/.oh-my-zsh"
 
@@ -79,7 +82,7 @@ setopt PUSHD_SILENT
 
 # Completion system
 autoload -Uz compinit
-compinit
+compinit -i
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 
@@ -97,7 +100,18 @@ bindkey '^H' backward-delete-char
 # Load local configs if they exist
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
-# Initialize Starship prompt if installed
-if command -v starship &> /dev/null; then
+# Initialize Starship prompt if installed (only when not in VS Code)
+if command -v starship &> /dev/null && [ "$TERM_PROGRAM" != "vscode" ]; then
   eval "$(starship init zsh)"
+else
+  # Simple prompt for VS Code
+  PROMPT='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '
 fi
+
+# bun completions
+[ -s "/Users/vegard/.bun/_bun" ] && source "/Users/vegard/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+alias claude="/Users/vegard/.claude/local/claude"
