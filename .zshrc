@@ -69,7 +69,30 @@ source_if_exists "$DOTFILES_DIR/.zsh/functions/zsh_functions.zsh"
 source_if_exists "$HOME/.zshrc.local"
 
 # Initialize Starship prompt if installed (only when not in VS Code)
-if command -v starship &> /dev/null && [ "$TERM_PROGRAM" != "vscode" ]; then
+# Create a debug function to help diagnose
+debug_info() {
+  echo "TERM_PROGRAM: $TERM_PROGRAM"
+  echo "VSCODE: $VSCODE"
+  echo "Current prompt: $PROMPT"
+}
+
+# Simple function to detect if we're in VS Code
+in_vscode() {
+  # Hard-code simple prompt for VS Code, since detection isn't working reliably
+  if [ "$USE_SIMPLE_PROMPT" = "1" ]; then
+    return 0
+  fi
+  if [ "$TERM_PROGRAM" = "vscode" ]; then
+    return 0
+  fi
+  if [ -n "$VSCODE" ]; then
+    return 0
+  fi
+  return 1
+}
+
+# Set the prompt based on environment
+if command -v starship &> /dev/null && ! in_vscode; then
   eval "$(starship init zsh)"
 else
   # Simple prompt for VS Code
