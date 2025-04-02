@@ -68,36 +68,27 @@ source_if_exists "$DOTFILES_DIR/.zsh/functions/zsh_functions.zsh"
 # Load local configs if they exist
 source_if_exists "$HOME/.zshrc.local"
 
-# Initialize Starship prompt if installed (only when not in VS Code)
-# Create a debug function to help diagnose
-debug_info() {
-  echo "TERM_PROGRAM: $TERM_PROGRAM"
-  echo "VSCODE: $VSCODE"
-  echo "Current prompt: $PROMPT"
-}
-
-# Simple function to detect if we're in VS Code
-in_vscode() {
-  # Hard-code simple prompt for VS Code, since detection isn't working reliably
-  if [ "$USE_SIMPLE_PROMPT" = "1" ]; then
-    return 0
-  fi
-  if [ "$TERM_PROGRAM" = "vscode" ]; then
-    return 0
-  fi
-  if [ -n "$VSCODE" ]; then
-    return 0
-  fi
-  return 1
-}
-
-# Set the prompt based on environment
-if command -v starship &> /dev/null && ! in_vscode; then
-  eval "$(starship init zsh)"
-else
+# Initialize Starship prompt if installed (not in VS Code)
+# Process environment variables for prompt selection
+if [ "$USE_SIMPLE_PROMPT" = "1" ] || [ "$TERM_PROGRAM" = "vscode" ] || [ -n "$VSCODE" ]; then
   # Simple prompt for VS Code
   PROMPT='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '
+else
+  # Use Starship in other terminals
+  if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
+  fi
 fi
+
+# Debug function (add "debug_prompt" anywhere to check status)
+debug_prompt() {
+  echo "==== PROMPT DEBUG ===="
+  echo "TERM_PROGRAM: $TERM_PROGRAM"
+  echo "VSCODE: $VSCODE"
+  echo "USE_SIMPLE_PROMPT: $USE_SIMPLE_PROMPT"
+  echo "PROMPT: $PROMPT"
+  echo "======================"
+}
 
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"

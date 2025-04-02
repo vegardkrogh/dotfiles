@@ -6,12 +6,26 @@ A collection of configuration files for a productive Unix/Linux development envi
 
 These dotfiles provide a consistent and efficient setup across different machines, with support for both Linux and macOS environments. They include configurations for:
 
-- Shell environments (Zsh with Oh-My-Zsh)
+- Shell environments (Zsh with optional Oh-My-Zsh)
 - Terminal multiplexer (Tmux)
 - Text editors (Vim/Neovim)
 - Version control (Git)
 - Container tools (Docker, Kubernetes)
 - Infrastructure as Code (Ansible, Terraform)
+
+## Installation
+
+```bash
+git clone https://github.com/vegardkrogh/dotfiles ~/.dotfiles
+cd ~/.dotfiles
+./install.sh
+```
+
+### Installation Options
+
+- `-y` - Install dependencies automatically
+- `-z` - Use Oh-My-Zsh (more features but slower)
+- `-n` - Skip Oh-My-Zsh (faster, minimal setup)
 
 ## Quick Navigation
 
@@ -22,7 +36,10 @@ These dotfiles provide a consistent and efficient setup across different machine
 
 ## Key Features
 
-- Powerlevel10k theme for a beautiful and informative prompt
+- Starship or optional Powerlevel10k theme for a beautiful and informative prompt
+- Lightweight ZSH setup (Oh-My-Zsh is optional)
+- Simple prompt for VS Code terminals
+- Automatic update checking in the background
 - Useful aliases for Git, Docker, Kubernetes, and more
 - Plugin system for enhanced functionality
 - Intuitive keyboard shortcuts
@@ -53,6 +70,18 @@ These dotfiles are designed to be easily customizable. Add your own settings wit
 
 - Create `~/.zshrc.local` for custom Zsh settings
 - Create `~/.gitconfig.local` for custom Git settings
+
+### VS Code Integration
+
+To use the simple prompt in VS Code, add this to your VS Code settings:
+
+```json
+"terminal.integrated.env.osx": {
+  "USE_SIMPLE_PROMPT": "1"
+}
+```
+
+See `vscode_settings_example.json` for examples for all platforms.
 
 ## License
 
