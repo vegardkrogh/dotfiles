@@ -9,7 +9,7 @@
 ## Quick Install
 
 ```bash
-git clone https://github.com/yourusername/dotfiles.git ~/.dotfiles
+git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 ./install.sh
 ```
@@ -18,7 +18,7 @@ cd ~/.dotfiles
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/dotfiles.git ~/.dotfiles
+   git clone https://github.com/vegardkrogh/dotfiles.git ~/.dotfiles
    ```
 
 2. Run the installation script:
@@ -34,8 +34,8 @@ cd ~/.dotfiles
 
 ## What's Included
 
-- Zsh configuration with Oh-My-Zsh
-- Powerlevel10k theme
+- Zsh configuration (with optional Oh-My-Zsh)
+- Starship prompt (or optional Powerlevel10k theme)
 - Useful plugins and aliases
 - Tmux configuration
 - Vim/Neovim setup
@@ -44,11 +44,16 @@ cd ~/.dotfiles
 
 ## Installation Options
 
-The installation script will ask if you want to:
+The installation script accepts the following options:
+
+- `-y` - Install dependencies automatically
+- `-z` - Use Oh-My-Zsh (more features but slower)
+- `-n` - Skip Oh-My-Zsh (faster, minimal setup)
+
+If no options are specified, the script will ask if you want to:
 
 1. Install dependencies (Zsh, Tmux, Vim, etc.)
-2. Install Oh-My-Zsh and plugins
-3. Install Powerlevel10k theme
+2. Use Oh-My-Zsh or a lightweight ZSH setup
 
 You can choose to skip any of these steps if you already have them installed or prefer to install them manually.
 
