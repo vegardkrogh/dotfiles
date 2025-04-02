@@ -3,16 +3,26 @@
 # but with configurations optimized for Linux environments
 
 INSTALL_DEPENDENCIES=false
+USE_OMZ=false
+SKIP_OMZ=false
 
-# Parse command opt -y
-while getopts "y" opt; do
+# Parse command options
+while getopts "yzn" opt; do
   case $opt in
     y)
       INSTALL_DEPENDENCIES=true
       ;;
+    z)
+      USE_OMZ=true
+      ;;
+    n)
+      SKIP_OMZ=true
+      ;;
     *)
-      echo "Usage: $0 [-y]"
+      echo "Usage: $0 [-y] [-z] [-n]"
       echo "  -y  Install dependencies automatically"
+      echo "  -z  Use Oh-My-Zsh (more features but slower)"
+      echo "  -n  Skip Oh-My-Zsh (faster, minimal setup)"
       exit 1
       ;;
   esac
@@ -295,11 +305,11 @@ install_p10k() {
   fi
 }
 
-# Install zsh plugins
+# Install zsh plugins directly (not via Oh-My-Zsh)
 install_zsh_plugin() {
   local plugin_name="$1"
   local plugin_url="$2"
-  local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$plugin_name"
+  local plugin_dir="$DOTFILES_DIR/.zsh/plugins/$plugin_name"
 
   if [ ! -d "$plugin_dir" ]; then
     print_status "Installing $plugin_name..."
@@ -311,6 +321,10 @@ install_zsh_plugin() {
 }
 
 install_zsh_plugins() {
+  # Create the plugins directory
+  mkdir -p "$DOTFILES_DIR/.zsh/plugins"
+  
+  # Install plugins
   install_zsh_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
   install_zsh_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions.git"
   install_zsh_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab.git"
@@ -331,6 +345,46 @@ ensure_zshrc_exists() {
   fi
 }
 
+# Create the ZSH functions directory
+setup_zsh_dirs() {
+  print_status "Setting up ZSH directories..."
+  mkdir -p "$DOTFILES_DIR/.zsh/functions"
+  mkdir -p "$DOTFILES_DIR/.zsh/plugins"
+  mkdir -p "$DOTFILES_DIR/.zsh/completions"
+  print_success "ZSH directories created"
+}
+
+# Ask user about Oh-My-Zsh
+ask_about_omz() {
+  # If option -z or --no-omz is passed, skip Oh-My-Zsh
+  if [ "$SKIP_OMZ" = true ]; then
+    print_status "Skipping Oh-My-Zsh installation as requested"
+    return 1
+  fi
+  
+  if [ "$USE_OMZ" = true ]; then
+    print_status "Installing Oh-My-Zsh as requested"
+    return 0
+  fi
+  
+  # In a container, skip the prompt
+  if [ "$in_devcontainer" = true ]; then
+    print_status "Running in container, using lightweight ZSH setup without Oh-My-Zsh"
+    return 1
+  fi
+  
+  # Ask user for preference
+  read -p "Would you like to use Oh-My-Zsh? (slower but more features) [y/N]: " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    print_status "Using Oh-My-Zsh setup"
+    return 0
+  else
+    print_status "Using lightweight ZSH setup without Oh-My-Zsh"
+    return 1
+  fi
+}
+
 # Main installation process
 main() {
   # Ensure zshrc exists first to prevent the new user prompt
@@ -338,18 +392,30 @@ main() {
 
   # Ask about installing dependencies
   install_deps
+  
+  # Set up ZSH directories
+  setup_zsh_dirs
 
-  # Install Oh My Zsh
-  install_omz
+  # Ask about Oh-My-Zsh
+  if ask_about_omz; then
+    # Install Oh My Zsh
+    install_omz
+    
+    # Copy the Oh-My-Zsh version of .zshrc
+    if [ -f "$DOTFILES_DIR/.zshrc_with_omz" ]; then
+      print_status "Using Oh-My-Zsh version of .zshrc"
+      cp "$DOTFILES_DIR/.zshrc_with_omz" "$DOTFILES_DIR/.zshrc"
+    fi
+    
+    # Powerlevel10k is an option with Oh-My-Zsh
+    # Uncomment to install Powerlevel10k
+    # install_p10k
+  fi
 
   # Install Starship prompt (modern, fast prompt)
   install_starship
 
-  # Powerlevel10k is no longer the default, but still available if needed
-  # Uncomment to install Powerlevel10k
-  # install_p10k
-
-  # Install ZSH plugins
+  # Install ZSH plugins (directly, not via Oh-My-Zsh)
   install_zsh_plugins
 
   # Create documentation files

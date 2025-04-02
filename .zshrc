@@ -1,68 +1,28 @@
-# Disable compfix to avoid the "_brew_services" error
+# Simple .zshrc without Oh-My-Zsh dependencies
+# Disable compfix to avoid errors
 ZSH_DISABLE_COMPFIX="true"
 
-# Path to oh-my-zsh installation
-export ZSH="$HOME/.oh-my-zsh"
+# Dotfiles directory
+export DOTFILES_DIR="$HOME/.dotfiles"
 
-# Set theme to none (using Starship instead)
-ZSH_THEME=""
-
-# Enable plugins
-plugins=(
-  git
-  zsh-syntax-highlighting
-  zsh-autosuggestions
-  fzf-tab
-  docker
-  kubectl
-  ansible
-  tmux
-  vscode
-)
-
-# Source oh-my-zsh
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-export PATH=$HOME/.local/bin:/venv/bin:$PATH
+# Set up basic shell environment
+export PATH=$HOME/.local/bin:$PATH
 export EDITOR="nvim"
 export VISUAL="nvim"
 
-# Aliases
-alias ll="ls -la"
-alias la="ls -A"
-alias l="ls -CF"
-alias gs="git status"
-alias gco="git checkout"
-alias gcm="git commit -m"
-alias gca="git commit --amend --no-edit"
-alias gst="git stash"
-alias gsta="git stash apply"
-alias gstl="git stash list"
-alias gp="git push"
-alias gpl="git pull"
-alias gb="git branch"
-alias gl="git log --oneline"
-alias k="kubectl"
-alias tf="terraform"
-alias a="ansible"
-alias ap="ansible-playbook"
-alias up="docker compose up"
-alias down="docker compose down"
-alias ps="docker compose ps"
-alias logs="docker compose logs -f"
+# Load dotfiles update system
+source "$DOTFILES_DIR/.zsh/functions/dotfiles_update.zsh"
 
-# Dotfiles related aliases
-alias dotdoc="readme"                          # Show dotfiles documentation
-alias dotinstall="readme install"              # Show installation instructions
-alias dotconfig="readme config"                # Show configuration guide
-alias dotcheat="readme cheat"                  # Show cheatsheet
-alias dotaliases="readme alias"                # Show all aliases
-alias dothelp="readme --format terminal"       # Show help with formatting
+# Source function to safely load files
+source_if_exists() {
+  [ -f "$1" ] && source "$1"
+}
 
 # History configuration
 HISTSIZE=10000
 SAVEHIST=10000
+HISTFILE=~/.zsh_history
+
 setopt SHARE_HISTORY
 setopt APPEND_HISTORY
 setopt INC_APPEND_HISTORY
@@ -94,11 +54,19 @@ bindkey '^[[F' end-of-line
 bindkey '^[[3~' delete-char
 bindkey '^H' backward-delete-char
 
-# Load custom functions if they exist
-[[ -f ~/.zsh_functions ]] && source ~/.zsh_functions
+# Load plugin files if they exist (from custom location)
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+
+# Load aliases
+source_if_exists "$DOTFILES_DIR/.bash_aliases"
+
+# Load custom functions
+source_if_exists "$DOTFILES_DIR/.zsh/functions/zsh_functions.zsh"
 
 # Load local configs if they exist
-[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+source_if_exists "$HOME/.zshrc.local"
 
 # Initialize Starship prompt if installed (only when not in VS Code)
 if command -v starship &> /dev/null && [ "$TERM_PROGRAM" != "vscode" ]; then
@@ -109,9 +77,14 @@ else
 fi
 
 # bun completions
-[ -s "/Users/vegard/.bun/_bun" ] && source "/Users/vegard/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
-alias claude="/Users/vegard/.claude/local/claude"
+
+# Claude CLI
+alias claude="$HOME/.claude/local/claude"
+
+# Initialize dotfiles update system
+dotfiles_init
