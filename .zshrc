@@ -1,25 +1,105 @@
-export PATH="$HOME/.local/bin:$PATH"
+# Simple .zshrc without Oh-My-Zsh dependencies
+# Disable compfix to avoid errors
+ZSH_DISABLE_COMPFIX="true"
 
+# Dotfiles directory
+export DOTFILES_DIR="$HOME/.dotfiles"
+
+# Set up basic shell environment
+export PATH=$HOME/.local/bin:$PATH
+export EDITOR="nvim"
+export VISUAL="nvim"
+
+# Load dotfiles update system
+source "$DOTFILES_DIR/.zsh/functions/dotfiles_update.zsh"
+
+# Source function to safely load files
+source_if_exists() {
+  [ -f "$1" ] && source "$1"
+}
+
+# History configuration
 HISTSIZE=10000
 SAVEHIST=10000
 HISTFILE=~/.zsh_history
-setopt HIST_IGNORE_DUPS
+
 setopt SHARE_HISTORY
+setopt APPEND_HISTORY
+setopt INC_APPEND_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
 
-autoload -Uz compinit && compinit
+# Ignore sensitive commands in history
+export HISTIGNORE="*SECRET*:*PASS*:*TOKEN*:*KEY*:*CREDENTIAL*:*PRIVATE*:*AUTH*:*PWD*:*SSH*:*GPG*:*API*:*ACCESS*:*SESSION*"
 
-alias ll='ls -lah'
-alias la='ls -lAh'
-alias ..='cd ..'
-alias ...='cd ../..'
-alias g='git'
-alias gs='git status'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git log --oneline'
-alias d='docker'
-alias dc='docker-compose'
-alias dev='cd ~/Developer 2>/dev/null || cd ~/'
+# Directory navigation
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
 
-[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
-command -v starship &> /dev/null && eval "$(starship init zsh)"
+# Completion system
+autoload -Uz compinit
+compinit -i
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+
+# Enable keyboard shortcuts
+bindkey '^[[A' history-beginning-search-backward
+bindkey '^[[B' history-beginning-search-forward
+bindkey '^[[H' beginning-of-line
+bindkey '^[[F' end-of-line
+bindkey '^[[3~' delete-char
+bindkey '^H' backward-delete-char
+
+# Load plugin files if they exist (from custom location)
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source_if_exists "$DOTFILES_DIR/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+
+# Load aliases
+source_if_exists "$DOTFILES_DIR/.bash_aliases"
+
+# Load custom functions
+source_if_exists "$DOTFILES_DIR/.zsh/functions/zsh_functions.zsh"
+
+# Load local configs if they exist
+source_if_exists "$HOME/.zshrc.local"
+
+# Initialize Starship prompt if installed (not in VS Code)
+# Process environment variables for prompt selection
+if [ "$USE_SIMPLE_PROMPT" = "1" ] || [ "$TERM_PROGRAM" = "vscode" ] || [ -n "$VSCODE" ]; then
+  # Simple prompt for VS Code
+  PROMPT='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '
+else
+  # Use Starship in other terminals
+  if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
+  fi
+fi
+
+# Debug function (add "debug_prompt" anywhere to check status)
+debug_prompt() {
+  echo "==== PROMPT DEBUG ===="
+  echo "TERM_PROGRAM: $TERM_PROGRAM"
+  echo "VSCODE: $VSCODE"
+  echo "USE_SIMPLE_PROMPT: $USE_SIMPLE_PROMPT"
+  echo "PROMPT: $PROMPT"
+  echo "======================"
+}
+
+# bun completions
+# Disabled to prevent 1Password SSH agent prompts on shell startup
+# [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+# Claude CLI
+alias claude="$HOME/.claude/local/claude"
+
+# Initialize dotfiles update system
+dotfiles_init

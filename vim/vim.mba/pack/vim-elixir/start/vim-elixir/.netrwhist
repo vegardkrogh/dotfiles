@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =8
+let g:netrw_dirhist_8='/Users/vegard/.ssh'
+let g:netrw_dirhist_7='/Users/vegard'
+let g:netrw_dirhist_6='/Users/vegard/.ssh'
+let g:netrw_dirhist_5='/Users/vegard'
+let g:netrw_dirhist_4='/Users/vegard/.ssh'
+let g:netrw_dirhist_3='/private/etc'
+let g:netrw_dirhist_2='/Users/vegard/.ssh'
+let g:netrw_dirhist_1='/Users/vegard/Developer/graph_os/lib/graph_os/graph'
+let g:netrw_dirhist_0='/Users/vegard/Developer/graph_os/lib/graph_os'
+let g:netrw_dirhist_9='/Users/vegard/Developer/graph_os/lib'
