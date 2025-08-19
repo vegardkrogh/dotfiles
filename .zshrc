@@ -76,15 +76,17 @@ export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 
 # Source additional configurations from dotfiles if they exist
 if [ -d "$DOTFILES_DIR" ]; then
-  # Source additional zsh files from dotfiles
-  for config_file in "$DOTFILES_DIR"/.zsh/conf.d/*.zsh; do
-    source_if_exists "$config_file"
-  done
+  # Source additional zsh files from dotfiles (only if directory exists)
+  if [ -d "$DOTFILES_DIR/.zsh/conf.d" ]; then
+    for config_file in "$DOTFILES_DIR"/.zsh/conf.d/*.zsh; do
+      [ -f "$config_file" ] && source_if_exists "$config_file"
+    done
+  fi
   
-  # Source public functions
+  # Source public functions (only if directory exists)
   if [ -d "$DOTFILES_DIR/.zsh/functions" ]; then
     for func_file in "$DOTFILES_DIR"/.zsh/functions/*.zsh; do
-      source_if_exists "$func_file"
+      [ -f "$func_file" ] && source_if_exists "$func_file"
     done
   fi
 fi
