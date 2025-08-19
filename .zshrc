@@ -1,17 +1,23 @@
-# Simple .zshrc without Oh-My-Zsh dependencies
-# Disable compfix to avoid errors
+# Base zsh configuration for public dotfiles
+# This file contains only the most essential configurations that are safe to share publicly
+
+# Disable compfix to avoid permission-related errors
 ZSH_DISABLE_COMPFIX="true"
 
-# Dotfiles directory
-export DOTFILES_DIR="$HOME/.dotfiles"
-
 # Set up basic shell environment
-export PATH=$HOME/.local/bin:$PATH
-export EDITOR="nvim"
-export VISUAL="nvim"
+export PATH="$HOME/.local/bin:$PATH"
 
-# Load dotfiles update system
-source "$DOTFILES_DIR/.zsh/functions/dotfiles_update.zsh"
+# Set default editor (nvim > vim > vi)
+if command -v nvim &> /dev/null; then
+  export EDITOR="nvim"
+  export VISUAL="nvim"
+elif command -v vim &> /dev/null; then
+  export EDITOR="vim"
+  export VISUAL="vim"
+else
+  export EDITOR="vi"
+  export VISUAL="vi"
+fi
 
 # Source function to safely load files
 source_if_exists() {
@@ -54,51 +60,31 @@ bindkey '^[[F' end-of-line
 bindkey '^[[3~' delete-char
 bindkey '^H' backward-delete-char
 
-# Load plugin files if they exist (from custom location)
-source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-source_if_exists "$DOTFILES_DIR/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
+# Load aliases if they exist
+source_if_exists "$HOME/.bash_aliases"
 
-# Load aliases
-source_if_exists "$DOTFILES_DIR/.bash_aliases"
-
-# Load custom functions
-source_if_exists "$DOTFILES_DIR/.zsh/functions/zsh_functions.zsh"
+# Simple prompt for VS Code or when explicitly requested
+if [ "$USE_SIMPLE_PROMPT" = "1" ] || [ "$TERM_PROGRAM" = "vscode" ] || [ -n "$VSCODE" ]; then
+  PROMPT='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '
+fi
 
 # Load local configs if they exist
 source_if_exists "$HOME/.zshrc.local"
 
-# Initialize Starship prompt if installed (not in VS Code)
-# Process environment variables for prompt selection
-if [ "$USE_SIMPLE_PROMPT" = "1" ] || [ "$TERM_PROGRAM" = "vscode" ] || [ -n "$VSCODE" ]; then
-  # Simple prompt for VS Code
-  PROMPT='%F{cyan}%n%f@%F{green}%m%f:%F{blue}%~%f$ '
-else
-  # Use Starship in other terminals
-  if command -v starship &> /dev/null; then
-    eval "$(starship init zsh)"
+# Export DOTFILES_DIR if not set (for public dotfiles)
+export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+
+# Source additional configurations from dotfiles if they exist
+if [ -d "$DOTFILES_DIR" ]; then
+  # Source additional zsh files from dotfiles
+  for config_file in "$DOTFILES_DIR"/.zsh/conf.d/*.zsh; do
+    source_if_exists "$config_file"
+  done
+  
+  # Source public functions
+  if [ -d "$DOTFILES_DIR/.zsh/functions" ]; then
+    for func_file in "$DOTFILES_DIR"/.zsh/functions/*.zsh; do
+      source_if_exists "$func_file"
+    done
   fi
 fi
-
-# Debug function (add "debug_prompt" anywhere to check status)
-debug_prompt() {
-  echo "==== PROMPT DEBUG ===="
-  echo "TERM_PROGRAM: $TERM_PROGRAM"
-  echo "VSCODE: $VSCODE"
-  echo "USE_SIMPLE_PROMPT: $USE_SIMPLE_PROMPT"
-  echo "PROMPT: $PROMPT"
-  echo "======================"
-}
-
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# Claude CLI
-alias claude="$HOME/.claude/local/claude"
-
-# Initialize dotfiles update system
-dotfiles_init
