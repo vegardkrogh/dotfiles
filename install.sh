@@ -1,89 +1,137 @@
 #!/bin/bash
 
-# Public dotfiles installation script
-# This script sets up symlinks for the public dotfiles
+# Public Dotfiles Installer
+# Can be run via: curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash
+# Or with flags: curl -fsSL ... | bash -s -- --private --nvo
 
 set -e
 
-# Colors for output
+# Colors
+RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%s)"
+# Configuration
+DOTFILES_PUBLIC_REPO="https://github.com/vegardkrogh/dotfiles.git"
+DOTFILES_PRIVATE_REPO="git@github.com:vegardkrogh/dotfiles-private.git"
+DOTFILES_DIR="$HOME/.dotfiles"
 
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
+# Parse arguments
+INSTALL_PRIVATE=false
+INSTALL_NVO=false
 
-echo -e "${YELLOW}Installing public dotfiles...${NC}"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --private)
+            INSTALL_PRIVATE=true
+            shift
+            ;;
+        --nvo)
+            INSTALL_NVO=true
+            shift
+            ;;
+        --help)
+            echo "Dotfiles Installer"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --private    Install private dotfiles (requires GitHub SSH auth)"
+            echo "  --nvo        Install NVO proxy (requires GitHub SSH auth)"
+            echo "  --help       Show this help message"
+            echo ""
+            echo "Examples:"
+            echo "  # Install only public dotfiles"
+            echo "  curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash"
+            echo ""
+            echo "  # Install with private configs and NVO"
+            echo "  curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash -s -- --private --nvo"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            exit 1
+            ;;
+    esac
+done
 
-# Function to create symlinks
-link_file() {
-  local src="$DOTFILES_DIR/$1"
-  local dst="$2"
-  
-  # Create parent directory if it doesn't exist
-  mkdir -p "$(dirname "$dst")"
-  
-  # Backup existing file if it exists and is not a symlink to our dotfiles
-  if [ -e "$dst" ] || [ -L "$dst" ]; then
-    if [ "$(readlink "$dst")" = "$src" ]; then
-      echo "Symlink already exists: $dst"
-      return 0
+# Function to check GitHub SSH auth
+check_github_auth() {
+    echo -e "${BLUE}Checking GitHub SSH authentication...${NC}"
+    if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        return 0
+    else
+        return 1
     fi
-    echo "Backing up $dst to $BACKUP_DIR/"
-    mv "$dst" "$BACKUP_DIR/$(basename "$dst")"
-  fi
-  
-  echo "Creating symlink: $dst -> $src"
-  ln -s "$src" "$dst"
 }
 
-# Create symlinks for public dotfiles
-link_file ".zshrc" "$HOME/.zshrc_public"
-link_file ".bash_aliases" "$HOME/.bash_aliases"
-link_file ".vimrc" "$HOME/.vimrc"
-link_file ".tmux.conf" "$HOME/.tmux.conf"
-
-# Create .zsh directory if it doesn't exist
-mkdir -p "$HOME/.zsh"
-
-# Create a minimal .zshrc that sources the public one
-if [ ! -f "$HOME/.zshrc" ] || ! grep -q "source.*\.zshrc_public" "$HOME/.zshrc"; then
-  echo -e "${YELLOW}Creating or updating ~/.zshrc to source public configuration${NC}"
-  cat > "$HOME/.zshrc" << 'EOL'
-# This file is managed by dotfiles installation script
-# It sources the public dotfiles configuration
-
-# Source public zshrc if it exists
-if [ -f "$HOME/.zshrc_public" ]; then
-  source "$HOME/.zshrc_public"
+# Check if private/nvo requested but no auth
+if [ "$INSTALL_PRIVATE" = true ] || [ "$INSTALL_NVO" = true ]; then
+    if ! check_github_auth; then
+        echo -e "${RED}Error: GitHub SSH authentication required for private/NVO installation${NC}"
+        echo "Please set up SSH keys with GitHub first:"
+        echo "  https://docs.github.com/en/authentication/connecting-to-github-with-ssh"
+        exit 1
+    fi
 fi
 
-# Source private zshrc if it exists
-if [ -f "$HOME/.zshrc_private" ]; then
-  source "$HOME/.zshrc_private"
-fi
+echo -e "${BLUE}==> Starting dotfiles installation...${NC}"
 
-# Source local zshrc if it exists
-if [ -f "$HOME/.zshrc.local" ]; then
-  source "$HOME/.zshrc.local"
-fi
-EOL
-fi
+# Check for required tools
+command -v git >/dev/null 2>&1 || { 
+    echo -e "${RED}git is required but not installed. Please install git first.${NC}" >&2
+    exit 1
+}
 
-echo -e "\n${GREEN}Installation complete!${NC}"
-echo -e "Your original files have been backed up to: $BACKUP_DIR"
-echo -e "\nTo start using your new configuration, run:"
-echo -e "  source ~/.zshrc"
-
-# Check if we should source the new .zshrc
-if [ "$1" = "--source" ]; then
-  echo -e "\nSourcing ~/.zshrc..."
-  source "$HOME/.zshrc"
-  echo -e "${GREEN}Done! Your new shell configuration is now active.${NC}"
+# Install public dotfiles
+if [ ! -d "$DOTFILES_DIR" ]; then
+    echo -e "${BLUE}==> Cloning public dotfiles...${NC}"
+    git clone "$DOTFILES_PUBLIC_REPO" "$DOTFILES_DIR"
 else
-  echo -e "\nRun the following command to apply changes to your current shell:"
-  echo -e "  source ~/.zshrc"
+    echo -e "${BLUE}==> Updating public dotfiles...${NC}"
+    cd "$DOTFILES_DIR" && git pull origin main
+fi
+
+# Install private dotfiles if requested
+if [ "$INSTALL_PRIVATE" = true ]; then
+    if [ ! -d "$DOTFILES_DIR-private" ]; then
+        echo -e "${BLUE}==> Cloning private dotfiles...${NC}"
+        git clone "$DOTFILES_PRIVATE_REPO" "$DOTFILES_DIR-private"
+    else
+        echo -e "${BLUE}==> Updating private dotfiles...${NC}"
+        cd "$DOTFILES_DIR-private" && git pull origin main
+    fi
+fi
+
+
+# Run the setup script
+echo -e "${BLUE}==> Running setup...${NC}"
+cd "$DOTFILES_DIR"
+
+# Run public setup
+if [ -f "$DOTFILES_DIR/setup.sh" ]; then
+    if [ "$INSTALL_PRIVATE" = true ]; then
+        bash "$DOTFILES_DIR/setup.sh" --private
+    else
+        bash "$DOTFILES_DIR/setup.sh"
+    fi
+fi
+
+# Run private setup if private is installed and NVO is requested
+if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_DIR-private" ]; then
+    if [ "$INSTALL_NVO" = true ] && [ -f "$DOTFILES_DIR-private/setup-private.sh" ]; then
+        echo -e "${BLUE}==> Running private setup...${NC}"
+        bash "$DOTFILES_DIR-private/setup-private.sh" --nvo
+    fi
+fi
+
+echo -e "${GREEN}==> Installation complete!${NC}"
+echo ""
+echo "Next steps:"
+echo "  1. Restart your shell or run: source ~/.zshrc"
+
+if [ "$INSTALL_PRIVATE" = true ]; then
+    echo "  2. Private configurations have been installed"
 fi
