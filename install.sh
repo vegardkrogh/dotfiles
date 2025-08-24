@@ -2,7 +2,7 @@
 
 # Public Dotfiles Installer
 # Can be run via: curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash
-# Or with flags: curl -fsSL ... | bash -s -- --private --nvo
+# Or with flags: curl -fsSL ... | bash -s -- --private
 
 set -e
 
@@ -20,16 +20,11 @@ DOTFILES_DIR="$HOME/.dotfiles"
 
 # Parse arguments
 INSTALL_PRIVATE=false
-INSTALL_NVO=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --private)
             INSTALL_PRIVATE=true
-            shift
-            ;;
-        --nvo)
-            INSTALL_NVO=true
             shift
             ;;
         --help)
@@ -39,15 +34,14 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --private    Install private dotfiles (requires GitHub SSH auth)"
-            echo "  --nvo        Install NVO proxy (requires GitHub SSH auth)"
             echo "  --help       Show this help message"
             echo ""
             echo "Examples:"
             echo "  # Install only public dotfiles"
             echo "  curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash"
             echo ""
-            echo "  # Install with private configs and NVO"
-            echo "  curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash -s -- --private --nvo"
+            echo "  # Install with private configs"
+            echo "  curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash -s -- --private"
             exit 0
             ;;
         *)
@@ -67,10 +61,10 @@ check_github_auth() {
     fi
 }
 
-# Check if private/nvo requested but no auth
-if [ "$INSTALL_PRIVATE" = true ] || [ "$INSTALL_NVO" = true ]; then
+# Check if private requested but no auth
+if [ "$INSTALL_PRIVATE" = true ]; then
     if ! check_github_auth; then
-        echo -e "${RED}Error: GitHub SSH authentication required for private/NVO installation${NC}"
+        echo -e "${RED}Error: GitHub SSH authentication required for private installation${NC}"
         echo "Please set up SSH keys with GitHub first:"
         echo "  https://docs.github.com/en/authentication/connecting-to-github-with-ssh"
         exit 1
@@ -119,11 +113,11 @@ if [ -f "$DOTFILES_DIR/setup.sh" ]; then
     fi
 fi
 
-# Run private setup if private is installed and NVO is requested
+# Run private setup if private is installed
 if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_DIR-private" ]; then
-    if [ "$INSTALL_NVO" = true ] && [ -f "$DOTFILES_DIR-private/setup-private.sh" ]; then
+    if [ -f "$DOTFILES_DIR-private/setup-private.sh" ]; then
         echo -e "${BLUE}==> Running private setup...${NC}"
-        bash "$DOTFILES_DIR-private/setup-private.sh" --nvo
+        bash "$DOTFILES_DIR-private/setup-private.sh"
     fi
 fi
 
