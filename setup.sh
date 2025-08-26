@@ -130,9 +130,6 @@ if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_PRIVATE_DIR" ]; then
         ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_PRIVATE_DIR/.zshrc\"" "Dotfiles: Source private dotfiles zsh config"
     fi
     
-    if [ -f "$DOTFILES_PRIVATE_DIR/private-additions.zsh" ]; then
-        ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_PRIVATE_DIR/private-additions.zsh\"" "Dotfiles: Source private additions"
-    fi
     
     echo "  Private configurations will be sourced from $DOTFILES_PRIVATE_DIR"
 fi
