@@ -139,8 +139,8 @@ source_if_exists() {
 # Add source function to .zshrc
 ensure_line "$HOME/.zshrc" "$source_if_exists_func" "Dotfiles: Function to safely source files"
 
-# Add sourcing line for aliases
-ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR/.bash_aliases\"" "Dotfiles: Source public dotfiles aliases"
+# Add sourcing line for public zsh config
+ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR/.zshrc\"" "Dotfiles: Source public dotfiles zsh config"
 
 # Add private dotfiles sourcing if installed
 if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_DIR-private" ]; then
