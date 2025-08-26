@@ -108,8 +108,6 @@ else
   fi
 fi
 
-# Load private/work configurations if they exist
-source_if_exists "$HOME/.dotfiles-private/private-additions.zsh"
 
 # Load local configs if they exist  
 source_if_exists "$HOME/.zshrc.local"
