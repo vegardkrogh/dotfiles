@@ -13,6 +13,31 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Ensure line exists in file - adds if missing, doesn't duplicate
+ensure_line() {
+    local file="$1"
+    local line="$2"
+    local comment="$3"
+    
+    # Create file if it doesn't exist
+    if [ ! -f "$file" ]; then
+        touch "$file"
+    fi
+    
+    # Check if line already exists
+    if ! grep -Fxq "$line" "$file"; then
+        # Add comment if provided
+        if [ -n "$comment" ]; then
+            echo "" >> "$file"
+            echo "# $comment" >> "$file"
+        fi
+        echo "$line" >> "$file"
+        echo -e "${GREEN}Added to $file: $line${NC}"
+    else
+        echo -e "${YELLOW}Already exists in $file: $line${NC}"
+    fi
+}
+
 # Configuration
 DOTFILES_PUBLIC_REPO="https://github.com/vegardkrogh/dotfiles.git"
 DOTFILES_PRIVATE_REPO="git@github.com:vegardkrogh/dotfiles-private.git"

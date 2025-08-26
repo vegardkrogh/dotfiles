@@ -12,6 +12,31 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Ensure line exists in file - adds if missing, doesn't duplicate
+ensure_line() {
+    local file="$1"
+    local line="$2"
+    local comment="$3"
+    
+    # Create file if it doesn't exist
+    if [ ! -f "$file" ]; then
+        touch "$file"
+    fi
+    
+    # Check if line already exists
+    if ! grep -Fxq "$line" "$file"; then
+        # Add comment if provided
+        if [ -n "$comment" ]; then
+            echo "" >> "$file"
+            echo "# $comment" >> "$file"
+        fi
+        echo "$line" >> "$file"
+        echo -e "${GREEN}Added to $file: $line${NC}"
+    else
+        echo -e "${YELLOW}Already exists in $file: $line${NC}"
+    fi
+}
+
 # Directories
 DOTFILES_DIR="$HOME/.dotfiles"
 DOTFILES_PRIVATE_DIR="$HOME/.dotfiles-private"
@@ -58,10 +83,27 @@ mkdir -p "$HOME/.local/bin"
 
 # Install base configuration from public dotfiles
 echo -e "${BLUE}==> Installing base configuration...${NC}"
-create_symlink "$DOTFILES_DIR/.zshrc" "$HOME/.zshrc"
+
+# Create symlinks for static config files (vim, tmux)
 create_symlink "$DOTFILES_DIR/.vimrc" "$HOME/.vimrc"
 create_symlink "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf"
-create_symlink "$DOTFILES_DIR/.bash_aliases" "$HOME/.bash_aliases"
+
+# Use sourcing strategy for shell configs to prevent overwriting by tools
+echo -e "${BLUE}==> Setting up shell configuration sourcing...${NC}"
+
+# Source function for safe file loading
+source_if_exists_func='
+# Function to safely source files if they exist
+source_if_exists() {
+    [ -f "$1" ] && source "$1"
+}'
+
+# Add source function to .zshrc
+ensure_line "$HOME/.zshrc" "$source_if_exists_func" "Dotfiles: Function to safely source files"
+
+# Add sourcing lines for dotfiles
+ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR/.zshrc\"" "Dotfiles: Source public dotfiles zsh config"
+ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR/.bash_aliases\"" "Dotfiles: Source public dotfiles aliases"
 
 # Install Starship config if it exists
 if [ -f "$DOTFILES_DIR/.config/starship.toml" ]; then
@@ -72,7 +114,7 @@ fi
 if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_PRIVATE_DIR" ]; then
     echo -e "${BLUE}==> Installing private configurations...${NC}"
     
-    # Link private configs
+    # Link private configs (static files)
     if [ -f "$DOTFILES_PRIVATE_DIR/.gitconfig" ]; then
         create_symlink "$DOTFILES_PRIVATE_DIR/.gitconfig" "$HOME/.gitconfig"
     fi
@@ -83,8 +125,16 @@ if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_PRIVATE_DIR" ]; then
         chmod 600 "$HOME/.ssh/config"
     fi
     
-    # The private-additions.zsh file will be sourced by .zshrc automatically
-    echo "  Private configurations will be loaded from $DOTFILES_PRIVATE_DIR"
+    # Add private dotfiles sourcing to .zshrc
+    if [ -f "$DOTFILES_PRIVATE_DIR/.zshrc" ]; then
+        ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_PRIVATE_DIR/.zshrc\"" "Dotfiles: Source private dotfiles zsh config"
+    fi
+    
+    if [ -f "$DOTFILES_PRIVATE_DIR/private-additions.zsh" ]; then
+        ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_PRIVATE_DIR/private-additions.zsh\"" "Dotfiles: Source private additions"
+    fi
+    
+    echo "  Private configurations will be sourced from $DOTFILES_PRIVATE_DIR"
 fi
 
 
