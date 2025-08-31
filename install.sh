@@ -1,10 +1,35 @@
 #!/bin/bash
 
-# Public Dotfiles Installer
+# Public Dotfiles Installer  
 # Can be run via: curl -fsSL https://raw.githubusercontent.com/vegardkrogh/dotfiles/main/install.sh | bash
 # Or with flags: curl -fsSL ... | bash -s -- --private
 
+VERSION="1.0.0"
+
 set -e
+
+# Handle command line arguments
+case "${1:-}" in
+    --help|-h)
+        echo "Public Dotfiles Installer v$VERSION"
+        echo "Usage: $0 [options]"
+        echo "Options:"
+        echo "  --help, -h     Show this help message"
+        echo "  --version, -v  Show version"
+        echo "  --dry-run      Show what would be installed without making changes"
+        echo "  --private      Also install private dotfiles"
+        exit 0
+        ;;
+    --version|-v)
+        echo "$VERSION"
+        exit 0
+        ;;
+    --dry-run)
+        echo "DRY RUN: Would install public dotfiles to $HOME/.dotfiles"
+        echo "DRY RUN: Would create symlinks for .zshrc, .vimrc, .tmux.conf, .bash_aliases"
+        exit 0
+        ;;
+esac
 
 # Colors
 RED='\033[0;31m'
@@ -51,28 +76,29 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Ensure line exists in file - adds if missing, doesn't duplicate
-ensure_line() {
-    local file="$1"
-    local line="$2"
-    local comment="$3"
+# Update or add a line in .zshrc using a unique identifier
+# This ensures clean updates without duplication
+update_zshrc_line() {
+    local line="$1"
+    local identifier="$2"
+    local zshrc="$HOME/.zshrc"
     
     # Create file if it doesn't exist
-    if [ ! -f "$file" ]; then
-        touch "$file"
+    if [ ! -f "$zshrc" ]; then
+        touch "$zshrc"
     fi
     
-    # Check if line already exists
-    if ! grep -Fxq "$line" "$file"; then
-        # Add comment if provided
-        if [ -n "$comment" ]; then
-            echo "" >> "$file"
-            echo "# $comment" >> "$file"
-        fi
-        echo "$line" >> "$file"
-        echo -e "${GREEN}Added to $file: $line${NC}"
+    # Check if a line with this identifier exists
+    if grep -q "#$identifier" "$zshrc"; then
+        # Replace the entire line containing the identifier
+        sed -i.bak "/#$identifier/c\\
+$line #$identifier" "$zshrc"
+        rm -f "$zshrc.bak"
+        echo -e "${GREEN}Updated in ~/.zshrc: $line${NC}"
     else
-        echo -e "${YELLOW}Already exists in $file: $line${NC}"
+        # Add the line to the file
+        echo "$line #$identifier" >> "$zshrc"
+        echo -e "${GREEN}Added to ~/.zshrc: $line${NC}"
     fi
 }
 
@@ -126,25 +152,17 @@ mkdir -p "$HOME/.config"
 echo -e "${BLUE}==> Creating symlinks for config files...${NC}"
 ln -sf "$DOTFILES_DIR/.vimrc" "$HOME/.vimrc" && echo -e "${GREEN}✓ Linked .vimrc${NC}"
 ln -sf "$DOTFILES_DIR/.tmux.conf" "$HOME/.tmux.conf" && echo -e "${GREEN}✓ Linked .tmux.conf${NC}"
+ln -sf "$DOTFILES_DIR/.bash_aliases" "$HOME/.bash_aliases" && echo -e "${GREEN}✓ Linked .bash_aliases${NC}"
 
 # Set up shell configuration sourcing
 echo -e "${BLUE}==> Setting up shell configuration sourcing...${NC}"
 
-# Source function for safe file loading
-source_if_exists_func='# Function to safely source files if they exist
-source_if_exists() {
-    [ -f "$1" ] && source "$1"
-}'
-
-# Add source function to .zshrc
-ensure_line "$HOME/.zshrc" "$source_if_exists_func" "Dotfiles: Function to safely source files"
-
-# Add sourcing line for public zsh config
-ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR/.zshrc\"" "Dotfiles: Source public dotfiles zsh config"
+# Add public dotfiles sourcing with unique identifier
+update_zshrc_line "[ -f \"$DOTFILES_DIR/.zshrc\" ] && source \"$DOTFILES_DIR/.zshrc\"" "dotfiles-public"
 
 # Add private dotfiles sourcing if installed
 if [ "$INSTALL_PRIVATE" = true ] && [ -d "$DOTFILES_DIR-private" ]; then
-    ensure_line "$HOME/.zshrc" "source_if_exists \"$DOTFILES_DIR-private/.zshrc\"" "Dotfiles: Source private dotfiles"
+    update_zshrc_line "[ -f \"$DOTFILES_DIR-private/.zshrc\" ] && source \"$DOTFILES_DIR-private/.zshrc\"" "dotfiles-private"
 fi
 
 echo -e "${GREEN}==> Installation complete!${NC}"
