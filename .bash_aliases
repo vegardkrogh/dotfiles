@@ -2,8 +2,10 @@
 # Generic aliases safe for public sharing
 
 # Claude CLI
-alias ccd="claude code --dangerously-skip-permissions"
-alias ccc="claude code -c"
+# Use bare `claude`, not `claude code` — the latter triggers the upstream
+# "did you mean `claude`?" startup tip on every invocation.
+alias ccd="claude --dangerously-skip-permissions"
+alias ccc="claude -c"
 alias ccdc="ccd -c"
 
 # Codex CLI
