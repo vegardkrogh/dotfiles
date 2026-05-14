@@ -19,6 +19,14 @@ else
   export VISUAL="vi"
 fi
 
+# Ansible-vault edits decrypt to ~/.ansible/tmp/*.yml and open in $EDITOR;
+# nvim/vim persist that content into shada (registers/history) and undo files
+# unless explicitly suppressed. Disable all persistence for vault sessions
+# only — normal editing keeps shada/undo. Enforced by CON-SWM-051.
+if [[ "$EDITOR" == "nvim" || "$EDITOR" == "vim" ]]; then
+  export ANSIBLE_VAULT_EDITOR="$EDITOR -i NONE -n -c 'set noundofile noswapfile'"
+fi
+
 # Source function to safely load files
 source_if_exists() {
   [ -f "$1" ] && source "$1"
