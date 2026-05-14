@@ -123,12 +123,9 @@ source_if_exists "$HOME/.zshrc.local"
 # Export DOTFILES_DIR if not set (for public dotfiles)
 export DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 
-# Load ZSH plugins (without Oh-My-Zsh)
-if [ -d "$DOTFILES_DIR/.zsh/plugins" ]; then
-  source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-  source_if_exists "$DOTFILES_DIR/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh"
-  source_if_exists "$DOTFILES_DIR/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh"
-fi
+# zsh plugins (zsh-syntax-highlighting, zsh-autosuggestions, fzf-tab) moved
+# to private dotfiles tier — they're personal, not part of the shareable
+# bones. Private .zshrc handles sourcing.
 
 # FZF configuration
 if command -v fzf &> /dev/null; then

@@ -1,4 +1,1 @@
 tmp/
-# Third-party zsh plugins; install.sh should bootstrap them but doesn't yet.
-# For now they're manually cloned into .zsh/plugins/ on each host.
-.zsh/plugins/
